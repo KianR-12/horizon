@@ -1,0 +1,30 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --blue: #0057FF;
+  --bg: #F5F7FB;
+  --card: #FFFFFF;
+  --text-primary: #0D0D0D;
+  --text-secondary: #6B7280;
+  --amber: #F59E0B;
+  --green: #10B981;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text-primary);
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
