@@ -2,6 +2,45 @@ import { useState } from 'react'
 
 export default function EmailCapture({ onContinue }) {
   const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit() {
+    const trimmed = email.trim()
+    if (!trimmed) {
+      onContinue(null)
+      return
+    }
+
+    if (!trimmed.includes('@') || !trimmed.includes('.')) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      onContinue(trimmed)
+    } catch {
+      setError('Could not connect. Check your connection and try again.')
+      setLoading(false)
+    }
+  }
 
   return (
     <div style={{
@@ -57,8 +96,9 @@ export default function EmailCapture({ onContinue }) {
         inputMode="email"
         autoComplete="email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => { setEmail(e.target.value); if (error) setError('') }}
         placeholder="your@email.com"
+        disabled={loading}
         style={{
           width: '100%',
           padding: '16px 18px',
@@ -66,39 +106,54 @@ export default function EmailCapture({ onContinue }) {
           fontFamily: 'DM Sans, sans-serif',
           color: '#0D0D0D',
           background: '#FFFFFF',
-          border: '1.5px solid #E5E7EB',
+          border: `1.5px solid ${error ? '#EF4444' : '#E5E7EB'}`,
           borderRadius: 14,
           outline: 'none',
           boxSizing: 'border-box',
-          marginBottom: 14,
+          marginBottom: error ? 8 : 14,
           transition: 'border-color 0.2s',
+          opacity: loading ? 0.6 : 1,
         }}
-        onFocus={(e) => e.target.style.borderColor = '#0057FF'}
-        onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
-        onKeyDown={(e) => e.key === 'Enter' && onContinue(email || null)}
+        onFocus={(e) => { if (!error) e.target.style.borderColor = '#0057FF' }}
+        onBlur={(e) => { if (!error) e.target.style.borderColor = '#E5E7EB' }}
+        onKeyDown={(e) => e.key === 'Enter' && !loading && handleSubmit()}
       />
+
+      {/* Inline error */}
+      {error && (
+        <p style={{
+          fontSize: 13,
+          color: '#EF4444',
+          marginBottom: 14,
+          alignSelf: 'flex-start',
+          lineHeight: 1.4,
+        }}>
+          {error}
+        </p>
+      )}
 
       {/* CTA button */}
       <button
-        onClick={() => onContinue(email || null)}
+        onClick={handleSubmit}
+        disabled={loading}
         style={{
           width: '100%',
           padding: '17px 0',
           borderRadius: 14,
           border: 'none',
-          background: '#0057FF',
+          background: loading ? '#4D89FF' : '#0057FF',
           color: '#fff',
           fontSize: 16,
           fontWeight: 600,
           fontFamily: 'DM Sans, sans-serif',
-          cursor: 'pointer',
+          cursor: loading ? 'not-allowed' : 'pointer',
           marginBottom: 14,
-          transition: 'transform 0.1s',
+          transition: 'background 0.2s, transform 0.1s',
         }}
-        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)' }}
+        onMouseDown={(e) => { if (!loading) e.currentTarget.style.transform = 'scale(0.98)' }}
         onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
       >
-        See My Portfolio
+        {loading ? 'Sending…' : 'See My Portfolio'}
       </button>
 
       {/* No spam */}
@@ -109,16 +164,18 @@ export default function EmailCapture({ onContinue }) {
       {/* Skip */}
       <button
         onClick={() => onContinue(null)}
+        disabled={loading}
         style={{
           background: 'none',
           border: 'none',
           fontSize: 14,
           color: '#9CA3AF',
-          cursor: 'pointer',
+          cursor: loading ? 'not-allowed' : 'pointer',
           fontFamily: 'DM Sans, sans-serif',
           padding: '4px 0',
           textDecoration: 'underline',
           textDecorationColor: '#D1D5DB',
+          opacity: loading ? 0.5 : 1,
         }}
       >
         Skip for now
