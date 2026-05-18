@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const ANNUAL_RETURN = 0.08
 const YEARS = 10
 
@@ -177,6 +179,7 @@ function BucketCard({ bucket, initialAmount, monthlyAmount }) {
 }
 
 export default function Portfolio({ answers, onEdit }) {
+  const [bannerDismissed, setBannerDismissed] = useState(false)
   const { initial, monthly, risk, emergency } = answers
   const totalInitial = Number(initial || 0)
   const needsBase = emergency === 'no' || emergency === 'partial'
@@ -187,6 +190,46 @@ export default function Portfolio({ answers, onEdit }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5F7FB', paddingBottom: 88 }}>
+      {/* Sample data banner */}
+      {!bannerDismissed && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#0057FF',
+          padding: '10px 16px',
+          gap: 12,
+        }}>
+          <p style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#fff',
+            lineHeight: 1.4,
+            flex: 1,
+          }}>
+            Sample data — real signals and live prices coming soon.
+          </p>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.7,
+            }}
+            aria-label="Dismiss"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 2L12 12M12 2L2 12" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      )}
       {/* Hero card */}
       <div style={{
         background: 'linear-gradient(135deg, #0057FF 0%, #003FBF 100%)',
