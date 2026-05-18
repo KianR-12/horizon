@@ -1,27 +1,36 @@
 import { useState } from 'react'
 
-const TOTAL = 3
+const TOTAL = 4
 
 const TOOLTIPS = {
-  1: "Even $100/month invested consistently at 19 can grow to over $300,000 by retirement. The amount matters less than starting early.",
-  2: "Monthly contributions use dollar cost averaging — you automatically buy more shares when prices are low and fewer when they're high. It's one of the most proven investing strategies.",
-  3: "This reveals your real risk tolerance — not the version you think you have, but the one you have under pressure. Markets dropped 34% in 2020 and 57% in 2008. Your answer shapes your entire portfolio split.",
+  2: "Even $100/month invested consistently at 19 can grow to over $300,000 by retirement. The amount matters less than starting early.",
+  3: "Monthly contributions use dollar cost averaging — you automatically buy more shares when prices are low and fewer when they're high. It's one of the most proven investing strategies.",
+  4: "This reveals your real risk tolerance — not the version you think you have, but the one you have under pressure. Markets dropped 34% in 2020 and 57% in 2008. Your answer shapes your entire portfolio split.",
 }
+
+const EMERGENCY_OPTIONS = [
+  { key: 'yes',     label: "Yes, I'm covered",  sub: "3+ months of expenses saved" },
+  { key: 'partial', label: "Partially",          sub: "Some savings, not quite 3 months" },
+  { key: 'no',      label: "Not yet",            sub: "Starting from scratch" },
+]
+
+const RISK_OPTIONS = [
+  { key: 'sell', label: 'Sell', desc: 'Get out before it drops more' },
+  { key: 'hold', label: 'Hold', desc: 'Stay the course, ride it out' },
+  { key: 'buy', label: 'Buy More', desc: 'Opportunity to get in cheaper' },
+]
 
 function ProgressBar({ step }) {
   return (
     <div style={{ display: 'flex', gap: 6, marginBottom: 36 }}>
       {Array.from({ length: TOTAL }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            flex: 1,
-            height: 3,
-            borderRadius: 99,
-            background: i < step ? '#0057FF' : '#E5E7EB',
-            transition: 'background 0.3s ease',
-          }}
-        />
+        <div key={i} style={{
+          flex: 1,
+          height: 3,
+          borderRadius: 99,
+          background: i < step ? '#0057FF' : '#E5E7EB',
+          transition: 'background 0.3s ease',
+        }} />
       ))}
     </div>
   )
@@ -35,16 +44,89 @@ function StepLabel({ step }) {
   )
 }
 
+function QuestionTitle({ children, step, showTooltip, onToggle }) {
+  const hasTooltip = Boolean(TOOLTIPS[step])
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+        <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.3, color: '#0D0D0D', flex: 1 }}>
+          {children}
+        </h2>
+        {hasTooltip && (
+          <button
+            onClick={onToggle}
+            style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: showTooltip ? '#0057FF' : '#EEF4FF',
+              border: 'none',
+              color: showTooltip ? '#fff' : '#0057FF',
+              fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', flexShrink: 0, marginTop: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'DM Sans, sans-serif',
+              transition: 'background 0.15s ease',
+            }}
+          >
+            ?
+          </button>
+        )}
+      </div>
+      {hasTooltip && showTooltip && (
+        <div style={{ background: '#EEF4FF', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: '#3B5CC6', lineHeight: 1.6, margin: 0 }}>
+            {TOOLTIPS[step]}
+          </p>
+        </div>
+      )}
+    </>
+  )
+}
+
+function OptionButton({ label, sub, value, selected, onClick }) {
+  const isSelected = selected === value
+  return (
+    <button
+      onClick={() => onClick(value)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        padding: '16px 18px',
+        borderRadius: 14,
+        border: `1.5px solid ${isSelected ? '#0057FF' : '#E5E7EB'}`,
+        background: isSelected ? '#EEF4FF' : '#F9FAFB',
+        cursor: 'pointer',
+        textAlign: 'left',
+        marginBottom: 12,
+        transition: 'all 0.18s ease',
+      }}
+    >
+      <div>
+        <p style={{ fontSize: 15, fontWeight: 600, color: isSelected ? '#0057FF' : '#0D0D0D', marginBottom: 2 }}>
+          {label}
+        </p>
+        <p style={{ fontSize: 13, color: '#6B7280', fontWeight: 400 }}>{sub}</p>
+      </div>
+      {isSelected && (
+        <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#0057FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      )}
+    </button>
+  )
+}
+
 function DollarInput({ value, onChange, placeholder }) {
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
+        display: 'flex', alignItems: 'center',
         background: '#F9FAFB',
         border: '1.5px solid #E5E7EB',
-        borderRadius: 14,
-        padding: '0 16px',
+        borderRadius: 14, padding: '0 16px',
         transition: 'border-color 0.2s',
       }}
       onFocus={(e) => e.currentTarget.style.borderColor = '#0057FF'}
@@ -52,34 +134,19 @@ function DollarInput({ value, onChange, placeholder }) {
     >
       <span style={{ fontSize: 22, fontWeight: 500, color: '#9CA3AF', marginRight: 6, fontFamily: 'DM Sans, sans-serif' }}>$</span>
       <input
-        type="number"
-        inputMode="decimal"
-        min="0"
+        type="number" inputMode="decimal" min="0"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         style={{
-          flex: 1,
-          border: 'none',
-          background: 'transparent',
-          fontSize: 22,
-          fontWeight: 600,
-          fontFamily: 'DM Sans, sans-serif',
-          color: '#0D0D0D',
-          padding: '18px 0',
-          outline: 'none',
-          width: '100%',
+          flex: 1, border: 'none', background: 'transparent',
+          fontSize: 22, fontWeight: 600, fontFamily: 'DM Sans, sans-serif',
+          color: '#0D0D0D', padding: '18px 0', outline: 'none', width: '100%',
         }}
       />
     </div>
   )
 }
-
-const RISK_OPTIONS = [
-  { key: 'sell', label: 'Sell', desc: 'Get out before it drops more' },
-  { key: 'hold', label: 'Hold', desc: 'Stay the course, ride it out' },
-  { key: 'buy', label: 'Buy More', desc: 'Opportunity to get in cheaper' },
-]
 
 function RiskIcon({ optKey, isSelected }) {
   const color = isSelected ? '#0057FF' : '#9CA3AF'
@@ -90,15 +157,10 @@ function RiskIcon({ optKey, isSelected }) {
   }
   return (
     <div style={{
-      width: 38,
-      height: 38,
-      borderRadius: 10,
+      width: 38, height: 38, borderRadius: 10,
       background: isSelected ? '#DBEAFF' : '#F3F4F6',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      transition: 'background 0.18s ease',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, transition: 'background 0.18s ease',
     }}>
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">{paths[optKey]}</svg>
     </div>
@@ -111,18 +173,12 @@ function RiskButton({ option, selected, onClick }) {
     <button
       onClick={() => onClick(option.key)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        width: '100%',
-        padding: '16px 18px',
-        borderRadius: 14,
+        display: 'flex', alignItems: 'center', gap: 14,
+        width: '100%', padding: '16px 18px', borderRadius: 14,
         border: `1.5px solid ${isSelected ? '#0057FF' : '#E5E7EB'}`,
         background: isSelected ? '#EEF4FF' : '#F9FAFB',
-        cursor: 'pointer',
-        textAlign: 'left',
-        transition: 'all 0.18s ease',
-        marginBottom: 12,
+        cursor: 'pointer', textAlign: 'left',
+        transition: 'all 0.18s ease', marginBottom: 12,
       }}
     >
       <RiskIcon optKey={option.key} isSelected={isSelected} />
@@ -143,64 +199,19 @@ function RiskButton({ option, selected, onClick }) {
   )
 }
 
-function QuestionTitle({ children, step, showTooltip, onToggle }) {
-  return (
-    <>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.3, color: '#0D0D0D', flex: 1 }}>
-          {children}
-        </h2>
-        <button
-          onClick={onToggle}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            background: showTooltip ? '#0057FF' : '#EEF4FF',
-            border: 'none',
-            color: showTooltip ? '#fff' : '#0057FF',
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-            flexShrink: 0,
-            marginTop: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'DM Sans, sans-serif',
-            transition: 'background 0.15s ease',
-          }}
-        >
-          ?
-        </button>
-      </div>
-      {showTooltip && (
-        <div style={{
-          background: '#EEF4FF',
-          borderRadius: 12,
-          padding: '12px 14px',
-          marginBottom: 16,
-        }}>
-          <p style={{ fontSize: 13, color: '#3B5CC6', lineHeight: 1.6, margin: 0 }}>
-            {TOOLTIPS[step]}
-          </p>
-        </div>
-      )}
-    </>
-  )
-}
-
 export default function Onboarding({ onComplete }) {
   const [step, setStep] = useState(1)
+  const [emergency, setEmergency] = useState(null)
   const [initial, setInitial] = useState('')
   const [monthly, setMonthly] = useState('')
   const [risk, setRisk] = useState(null)
   const [showTooltip, setShowTooltip] = useState(false)
 
   function canContinue() {
-    if (step === 1) return initial !== '' && Number(initial) >= 0
-    if (step === 2) return monthly !== '' && Number(monthly) >= 0
-    if (step === 3) return risk !== null
+    if (step === 1) return emergency !== null
+    if (step === 2) return initial !== '' && Number(initial) >= 0
+    if (step === 3) return monthly !== '' && Number(monthly) >= 0
+    if (step === 4) return risk !== null
     return false
   }
 
@@ -209,13 +220,12 @@ export default function Onboarding({ onComplete }) {
     if (step < TOTAL) {
       setStep(step + 1)
     } else {
-      onComplete({ initial, monthly, risk })
+      onComplete({ initial, monthly, risk, emergency })
     }
   }
 
   return (
     <div style={{ padding: '56px 24px 32px', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Logo */}
       <div style={{ marginBottom: 40 }}>
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
           <circle cx="16" cy="16" r="16" fill="#0057FF" />
@@ -229,7 +239,41 @@ export default function Onboarding({ onComplete }) {
       <div style={{ flex: 1 }}>
         {step === 1 && (
           <div>
-            <QuestionTitle step={1} showTooltip={showTooltip} onToggle={() => setShowTooltip(!showTooltip)}>
+            <h2 style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.3, marginBottom: 8, color: '#0D0D0D' }}>
+              Do you have 3 months of expenses saved as an emergency fund?
+            </h2>
+            <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 28 }}>
+              This shapes how your money gets allocated from day one.
+            </p>
+            {EMERGENCY_OPTIONS.map((opt) => (
+              <OptionButton
+                key={opt.key}
+                label={opt.label}
+                sub={opt.sub}
+                value={opt.key}
+                selected={emergency}
+                onClick={setEmergency}
+              />
+            ))}
+            {(emergency === 'no' || emergency === 'partial') && (
+              <div style={{
+                background: '#F0F9FF',
+                border: '1px solid #BAE6FD',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginTop: 4,
+              }}>
+                <p style={{ fontSize: 13, color: '#0369A1', lineHeight: 1.6, margin: 0 }}>
+                  Smart move to build this first. We'll set aside a portion for your Base before investing the rest.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <QuestionTitle step={2} showTooltip={showTooltip} onToggle={() => setShowTooltip(!showTooltip)}>
               How much do you have available to invest right now?
             </QuestionTitle>
             <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 28 }}>This is your starting point — even $50 counts.</p>
@@ -240,9 +284,9 @@ export default function Onboarding({ onComplete }) {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div>
-            <QuestionTitle step={2} showTooltip={showTooltip} onToggle={() => setShowTooltip(!showTooltip)}>
+            <QuestionTitle step={3} showTooltip={showTooltip} onToggle={() => setShowTooltip(!showTooltip)}>
               How much can you add every month?
             </QuestionTitle>
             <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 28 }}>Regular contributions make the biggest difference over time.</p>
@@ -250,9 +294,9 @@ export default function Onboarding({ onComplete }) {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div>
-            <QuestionTitle step={3} showTooltip={showTooltip} onToggle={() => setShowTooltip(!showTooltip)}>
+            <QuestionTitle step={4} showTooltip={showTooltip} onToggle={() => setShowTooltip(!showTooltip)}>
               If your money dropped 30% tomorrow, what would you do?
             </QuestionTitle>
             <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 28 }}>Be honest — this shapes how we build your portfolio.</p>
@@ -267,14 +311,9 @@ export default function Onboarding({ onComplete }) {
         onClick={handleNext}
         disabled={!canContinue()}
         style={{
-          width: '100%',
-          padding: '17px 0',
-          borderRadius: 14,
-          border: 'none',
+          width: '100%', padding: '17px 0', borderRadius: 14, border: 'none',
           background: canContinue() ? '#0057FF' : '#C7D7FF',
-          color: '#fff',
-          fontSize: 16,
-          fontWeight: 600,
+          color: '#fff', fontSize: 16, fontWeight: 600,
           fontFamily: 'DM Sans, sans-serif',
           cursor: canContinue() ? 'pointer' : 'not-allowed',
           transition: 'background 0.2s, transform 0.1s',

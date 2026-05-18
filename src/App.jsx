@@ -10,7 +10,7 @@ import BottomNav from './components/BottomNav.jsx'
 export default function App() {
   const [screen, setScreen] = useState('onboarding') // 'onboarding' | 'loading' | 'app'
   const [activeTab, setActiveTab] = useState('portfolio')
-  const [answers, setAnswers] = useState({ initial: '', monthly: '', risk: null })
+  const [answers, setAnswers] = useState({ initial: '', monthly: '', risk: null, emergency: null })
 
   function handleOnboardingComplete(data) {
     setAnswers(data)

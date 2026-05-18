@@ -85,6 +85,55 @@ function ProjectionTable({ initial, monthly }) {
   )
 }
 
+function BaseCard({ emergency, totalInitial }) {
+  const needsBase = emergency === 'no' || emergency === 'partial'
+  const baseAmount = needsBase ? Number(totalInitial || 0) * 0.2 : 0
+
+  return (
+    <div style={{ background: '#FFFFFF', borderRadius: 18, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div style={{ height: 3, background: '#9CA3AF' }} />
+      <div style={{ padding: '18px 20px' }}>
+        <div style={{ marginBottom: 10 }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: '#0D0D0D' }}>The Base</p>
+          <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>Emergency fund first. Everything else second.</p>
+          {needsBase && <p style={{ fontSize: 12, color: '#6B7280' }}>20% of your amount</p>}
+        </div>
+
+        {!needsBase ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F0FDF4', borderRadius: 12, padding: '12px 14px' }}>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                <path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <p style={{ fontSize: 13, color: '#065F46', lineHeight: 1.5 }}>
+              Your emergency fund is covered. 100% deployed into your portfolio.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 14, lineHeight: 1.5 }}>
+              High-yield savings. Your safety net before your growth engine. No risk, instant access.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Set aside</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#0D0D0D', fontFamily: 'Playfair Display, serif' }}>
+                  {formatDollar(baseAmount)}
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Growth</p>
+                <p style={{ fontSize: 12, fontWeight: 500, color: '#9CA3AF' }}>No risk · Instant access</p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function BucketCard({ bucket, initialAmount, monthlyAmount }) {
   const bucketInitial = Number(initialAmount || 0) * bucket.pct
   const bucketMonthly = Number(monthlyAmount || 0) * bucket.pct
@@ -128,9 +177,11 @@ function BucketCard({ bucket, initialAmount, monthlyAmount }) {
 }
 
 export default function Portfolio({ answers, onEdit }) {
-  const { initial, monthly, risk } = answers
-  const totalProjected = project(initial, monthly, YEARS, ANNUAL_RETURN)
-  const totalInvested = Number(initial || 0)
+  const { initial, monthly, risk, emergency } = answers
+  const totalInitial = Number(initial || 0)
+  const needsBase = emergency === 'no' || emergency === 'partial'
+  const investable = needsBase ? totalInitial * 0.8 : totalInitial
+  const totalProjected = project(investable, monthly, YEARS, ANNUAL_RETURN)
 
   const riskLabel = { sell: 'Conservative', hold: 'Balanced', buy: 'Aggressive' }[risk] || 'Balanced'
 
@@ -201,7 +252,7 @@ export default function Portfolio({ answers, onEdit }) {
           Total invested today
         </p>
         <p style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Playfair Display, serif', lineHeight: 1, marginBottom: 6 }}>
-          {formatDollar(totalInvested)}
+          {formatDollar(investable)}
         </p>
         {Number(monthly) > 0 && (
           <p style={{ fontSize: 13, opacity: 0.65, marginBottom: 0 }}>+ {formatDollar(monthly)} / month</p>
@@ -219,18 +270,19 @@ export default function Portfolio({ answers, onEdit }) {
         <p style={{ fontSize: 13, opacity: 0.65 }}>Estimated at +8% / yr</p>
       </div>
 
-      <ProjectionTable initial={initial} monthly={monthly} />
+      <ProjectionTable initial={investable} monthly={monthly} />
 
       {/* Buckets */}
       <div style={{ padding: '24px 16px 0' }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 4 }}>
           Your buckets
         </p>
+        <BaseCard emergency={emergency} totalInitial={totalInitial} />
         {BUCKETS.map((bucket) => (
           <BucketCard
             key={bucket.key}
             bucket={bucket}
-            initialAmount={initial}
+            initialAmount={investable}
             monthlyAmount={monthly}
           />
         ))}
