@@ -1,3 +1,5 @@
+import { Resend } from 'resend'
+
 const WELCOME_HTML = (email) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -56,46 +58,35 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error.' })
   }
 
+  const resend = new Resend(apiKey)
+
   try {
     // Welcome email to the subscriber
-    const welcomeRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Horizon <onboarding@resend.dev>',
-        to: email,
-        subject: "You're on the Horizon list.",
-        html: WELCOME_HTML(email),
-      }),
+    const { data, error } = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: [email],
+      subject: "You're on the Horizon list.",
+      html: WELCOME_HTML(email),
     })
 
-    if (!welcomeRes.ok) {
-      const body = await welcomeRes.json().catch(() => ({}))
-      console.error('Resend welcome error:', body)
-      return res.status(502).json({ error: 'Could not send email. Please try again.' })
+    if (error) {
+      console.error('Resend welcome error:', JSON.stringify(error, null, 2))
+      return res.status(400).json({ error: error.message || 'Could not send email. Please try again.' })
     }
 
-    // Internal notification
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Horizon <onboarding@resend.dev>',
-        to: 'kianrajabtavousi@gmail.com',
-        subject: `New Horizon signup: ${email}`,
-        html: `<p style="font-family:sans-serif;font-size:15px;">New signup: <strong>${email}</strong></p>`,
-      }),
+    console.log('Welcome email sent:', data)
+
+    // Internal notification (non-fatal)
+    resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: ['kianrajabtavousi@gmail.com'],
+      subject: `New Horizon signup: ${email}`,
+      html: `<p style="font-family:sans-serif;font-size:15px;">New signup: <strong>${email}</strong></p>`,
     }).catch((err) => console.error('Notification email failed (non-fatal):', err))
 
     return res.status(200).json({ success: true })
   } catch (err) {
-    console.error('subscribe handler error:', err)
+    console.error('subscribe handler error:', JSON.stringify(err, null, 2))
     return res.status(500).json({ error: 'Something went wrong. Please try again.' })
   }
 }
