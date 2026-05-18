@@ -18,6 +18,7 @@ const BUCKETS = [
   {
     key: 'anchor',
     label: 'The Anchor',
+    subtitle: 'Proven long-term holdings',
     pct: 0.6,
     color: '#0057FF',
     desc: 'Global index funds & bonds. Steady, diversified, resilient.',
@@ -25,6 +26,7 @@ const BUCKETS = [
   {
     key: 'wave',
     label: 'The Wave',
+    subtitle: 'Emerging verified opportunities',
     pct: 0.3,
     color: '#F59E0B',
     desc: 'Sector ETFs & growth stocks. Riding momentum, managed risk.',
@@ -32,11 +34,56 @@ const BUCKETS = [
   {
     key: 'frontier',
     label: 'The Frontier',
+    subtitle: 'High risk high reward',
     pct: 0.1,
     color: '#10B981',
     desc: 'Emerging markets & crypto. High upside, high volatility.',
   },
 ]
+
+const PROJ_ROWS = [
+  { label: '1 Year',   years: 1 },
+  { label: '5 Years',  years: 5 },
+  { label: '10 Years', years: 10 },
+]
+
+function ProjectionTable({ initial, monthly }) {
+  return (
+    <div style={{ margin: '20px 16px 0', background: '#FFFFFF', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      {/* Header */}
+      <div style={{ display: 'grid', gridTemplateColumns: '0.9fr 1fr 1fr', background: '#0057FF', padding: '12px 16px', gap: 4 }}>
+        <div />
+        <p style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.8)', textAlign: 'center', letterSpacing: '0.03em', lineHeight: 1.4 }}>
+          Conservative{'\n'}5% / yr
+        </p>
+        <p style={{ fontSize: 10, fontWeight: 600, color: '#fff', textAlign: 'center', letterSpacing: '0.03em', lineHeight: 1.4 }}>
+          Aggressive{'\n'}8% / yr
+        </p>
+      </div>
+      {PROJ_ROWS.map((row, i) => (
+        <div
+          key={row.label}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '0.9fr 1fr 1fr',
+            padding: '14px 16px',
+            borderTop: i === 0 ? 'none' : '1px solid #F5F5F5',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#0D0D0D' }}>{row.label}</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#6B7280', textAlign: 'center', fontFamily: 'Playfair Display, serif' }}>
+            {formatDollar(project(initial, monthly, row.years, 0.05))}
+          </p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#0057FF', textAlign: 'center', fontFamily: 'Playfair Display, serif' }}>
+            {formatDollar(project(initial, monthly, row.years, 0.08))}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function BucketCard({ bucket, initialAmount, monthlyAmount }) {
   const bucketInitial = Number(initialAmount || 0) * bucket.pct
@@ -55,6 +102,7 @@ function BucketCard({ bucket, initialAmount, monthlyAmount }) {
       <div style={{ padding: '18px 20px' }}>
         <div style={{ marginBottom: 10 }}>
           <p style={{ fontSize: 15, fontWeight: 700, color: '#0D0D0D' }}>{bucket.label}</p>
+          <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 2 }}>{bucket.subtitle}</p>
           <p style={{ fontSize: 12, color: '#6B7280' }}>{Math.round(bucket.pct * 100)}% of portfolio</p>
         </div>
 
@@ -170,6 +218,8 @@ export default function Portfolio({ answers, onEdit }) {
         </p>
         <p style={{ fontSize: 13, opacity: 0.65 }}>Estimated at +8% / yr</p>
       </div>
+
+      <ProjectionTable initial={initial} monthly={monthly} />
 
       {/* Buckets */}
       <div style={{ padding: '24px 16px 0' }}>

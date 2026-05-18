@@ -42,6 +42,11 @@ const BUCKET_STYLE = {
   FRONTIER: { bg: '#ECFDF5', color: '#065F46', border: '#00A63E' },
 }
 
+const BUCKET_SUBTITLE = {
+  WAVE:     'Emerging verified opportunities',
+  FRONTIER: 'High risk high reward',
+}
+
 const RISK_STYLE = {
   'LOW':     { bg: '#ECFDF5', color: '#065F46' },
   'LOW-MED': { bg: '#FFFBEB', color: '#92400E' },
@@ -122,10 +127,13 @@ function SignalCard({ signal }) {
       </p>
 
       {/* Badges */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
         <Badge label={signal.bucket} bg={bucketStyle.bg} color={bucketStyle.color} />
         <Badge label={`RISK: ${signal.risk}`} bg={riskStyle.bg} color={riskStyle.color} />
       </div>
+      <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 14 }}>
+        {BUCKET_SUBTITLE[signal.bucket]}
+      </p>
 
       {/* Description */}
       <p style={{

@@ -1,29 +1,27 @@
 import { useState } from 'react'
 
-const PERIODS = ['1M', '3M', '6M', '1Y', 'All']
+const PERIODS = ['1 Mo', '3 Mo', '6 Mo', '1 Yr', 'All']
 
 const PERIOD_RETURN = {
-  '1M':  0.032,
-  '3M':  0.087,
-  '6M':  0.184,
-  '1Y':  0.312,
-  'All': 0.184,
+  '1 Mo': 0.032,
+  '3 Mo': 0.087,
+  '6 Mo': 0.184,
+  '1 Yr': 0.312,
+  'All':  0.184,
 }
 
-// y values in SVG space (lower = higher on screen = better performance)
-// x is computed evenly across 0–320
 const CHART_Y = {
-  '1M':  [78, 72, 76, 68, 62],
-  '3M':  [82, 74, 67, 71, 58, 52],
-  '6M':  [86, 78, 66, 72, 52, 40],
-  '1Y':  [88, 82, 70, 76, 56, 38],
-  'All': [86, 78, 66, 72, 52, 40],
+  '1 Mo': [78, 72, 76, 68, 62],
+  '3 Mo': [82, 74, 67, 71, 58, 52],
+  '6 Mo': [86, 78, 66, 72, 52, 40],
+  '1 Yr': [88, 82, 70, 76, 56, 38],
+  'All':  [86, 78, 66, 72, 52, 40],
 }
 
 const BUCKET_PERF = [
-  { label: 'The Anchor',   alloc: 0.6, ret:  0.112, retStr: '+11.2%', color: '#0057FF' },
-  { label: 'The Wave',     alloc: 0.3, ret:  0.348, retStr: '+34.8%', color: '#F59E0B' },
-  { label: 'The Frontier', alloc: 0.1, ret: -0.124, retStr: '-12.4%', color: '#EF4444' },
+  { label: 'The Anchor',   subtitle: 'Proven long-term holdings',    alloc: 0.6, ret:  0.112, retStr: '+11.2%', color: '#0057FF' },
+  { label: 'The Wave',     subtitle: 'Emerging verified opportunities', alloc: 0.3, ret:  0.348, retStr: '+34.8%', color: '#F59E0B' },
+  { label: 'The Frontier', subtitle: 'High risk high reward',         alloc: 0.1, ret: -0.124, retStr: '-12.4%', color: '#EF4444' },
 ]
 const MAX_ABS_RET = 0.348
 
@@ -87,14 +85,15 @@ function BucketBar({ bucket, initial }) {
 
   return (
     <div style={{ marginBottom: 18 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 7 }}>
+        <div>
           <span style={{ fontSize: 14, fontWeight: 600, color: '#0D0D0D' }}>{bucket.label}</span>
+          <p style={{ fontSize: 11, color: '#9CA3AF', margin: '1px 0 0' }}>{bucket.subtitle}</p>
           {initial > 0 && (
-            <span style={{ fontSize: 12, color: '#9CA3AF' }}>{formatDollar(initial * bucket.alloc)}</span>
+            <p style={{ fontSize: 12, color: '#9CA3AF', margin: '2px 0 0' }}>{formatDollar(initial * bucket.alloc)}</p>
           )}
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: retColor }}>{bucket.retStr}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: retColor, marginTop: 2 }}>{bucket.retStr}</span>
       </div>
       <div style={{ height: 6, background: '#F3F4F6', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{
@@ -129,6 +128,9 @@ function InstinctScore() {
         <div>
           <p style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
             Instinct Score
+          </p>
+          <p style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 400, lineHeight: 1.5, marginBottom: 6, maxWidth: 180 }}>
+            Tracks every signal you acted on and shows how accurate your investment instincts have been over time. The higher your score, the better your read on emerging opportunities.
           </p>
           <p style={{ fontSize: 34, fontWeight: 700, color: '#0D0D0D', fontFamily: 'Playfair Display, serif', lineHeight: 1 }}>
             {score}<span style={{ fontSize: 20, color: '#9CA3AF', fontWeight: 400 }}>/{total}</span>
@@ -204,7 +206,7 @@ function WhatYouMissed() {
 }
 
 export default function Performance({ answers }) {
-  const [period, setPeriod] = useState('6M')
+  const [period, setPeriod] = useState('6 Mo')
   const initial = Number(answers?.initial || 0)
   const ret = PERIOD_RETURN[period]
   const currentValue = initial * (1 + ret)
