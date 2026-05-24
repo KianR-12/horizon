@@ -3,7 +3,20 @@
     "allow": [
       "Bash(npm install *)",
       "Bash(npm run *)",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('edge_finder.py', doraise=True\\) and print\\('OK'\\)\")",
+      "Bash(python3 edge_finder.py --once --help)",
+      "Bash(python3 edge_finder.py --once)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('edge_finder.py', doraise=True\\)\")",
+      "Bash(KALSHI_API_KEY=4ada54f6-2c5e-4f12-94c3-dc5a100e43eb python3 *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(chmod +x *)",
+      "Bash(bash run.sh)",
+      "Bash(export KALSHI_API_KEY=4ada54f6-2c5e-4f12-94c3-dc5a100e43eb)",
+      "Bash(curl -sI \"https://api-web.nhle.com/v1/standings/now\")",
+      "Bash(curl -s \"https://api-web.nhle.com/v1/standings/now\")"
     ]
   }
 }

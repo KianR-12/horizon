@@ -1,0 +1,22 @@
+{
+  "nhl_home_win_pct": 0.515,
+  "nhl_home_win_rest_plus1": 0.535,
+  "nhl_home_win_rest_plus2": 0.555,
+  "nhl_under_after_ot": 0.6,
+  "nhl_under_high_combined_gsax": 0.64,
+  "nhl_series_leader_win_pct": 0.59,
+  "nhl_avg_goals": 6.07,
+  "nhl_under_5_5": 0.431,
+  "nhl_under_6_5": 0.565,
+  "nba_home_win_pct": 0.584,
+  "nba_home_win_rest_plus1": 0.6,
+  "nba_home_win_rest_plus2": 0.615,
+  "nba_under_after_ot": 0.58,
+  "nba_series_leader_win_pct": 0.6,
+  "nba_avg_total": 216.0,
+  "nba_under_215": 0.456,
+  "nba_under_218": 0.552,
+  "nba_under_220": 0.588,
+  "nhl_under_overall": 0.565,
+  "scraped_at": "2026-05-22T09:44:39.214372"
+}

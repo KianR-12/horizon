@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const ANNUAL_RETURN = 0.08
 const YEARS = 10
@@ -16,6 +16,15 @@ function formatDollar(val) {
   return `$${Math.round(n).toLocaleString('en-US')}`
 }
 
+function formatDollarCents(val) {
+  const n = Number(val || 0)
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function randomFluctuation() {
+  return 1.5 + Math.random() * 6.5
+}
+
 const BUCKETS = [
   {
     key: 'anchor',
@@ -24,6 +33,7 @@ const BUCKETS = [
     pct: 0.6,
     color: '#0057FF',
     desc: 'Global index funds & bonds. Steady, diversified, resilient.',
+    centsOffset: 0.47,
   },
   {
     key: 'wave',
@@ -32,6 +42,7 @@ const BUCKETS = [
     pct: 0.3,
     color: '#F59E0B',
     desc: 'Sector ETFs & growth stocks. Riding momentum, managed risk.',
+    centsOffset: 0.83,
   },
   {
     key: 'frontier',
@@ -40,6 +51,7 @@ const BUCKETS = [
     pct: 0.1,
     color: '#10B981',
     desc: 'Emerging markets & crypto. High upside, high volatility.',
+    centsOffset: 0.19,
   },
 ]
 
@@ -163,7 +175,7 @@ function BucketCard({ bucket, initialAmount, monthlyAmount }) {
           <div>
             <p style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Invested</p>
             <p style={{ fontSize: 18, fontWeight: 700, color: '#0D0D0D', fontFamily: 'Playfair Display, serif' }}>
-              {formatDollar(bucketInitial)}
+              {formatDollarCents(bucketInitial + bucket.centsOffset)}
             </p>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -180,6 +192,13 @@ function BucketCard({ bucket, initialAmount, monthlyAmount }) {
 
 export default function Portfolio({ answers, onEdit }) {
   const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [dailyGain, setDailyGain] = useState(() => randomFluctuation())
+
+  useEffect(() => {
+    const interval = setInterval(() => setDailyGain(randomFluctuation()), 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   const { initial, monthly, risk, emergency } = answers
   const totalInitial = Number(initial || 0)
   const needsBase = emergency === 'no' || emergency === 'partial'
@@ -294,8 +313,11 @@ export default function Portfolio({ answers, onEdit }) {
         <p style={{ fontSize: 12, opacity: 0.65, marginBottom: 6, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           Total invested today
         </p>
-        <p style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Playfair Display, serif', lineHeight: 1, marginBottom: 6 }}>
+        <p style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Playfair Display, serif', lineHeight: 1, marginBottom: 4 }}>
           {formatDollar(investable)}
+        </p>
+        <p style={{ fontSize: 13, color: '#4ADE80', fontWeight: 600, marginBottom: Number(monthly) > 0 ? 4 : 0 }}>
+          +${dailyGain.toFixed(2)} today
         </p>
         {Number(monthly) > 0 && (
           <p style={{ fontSize: 13, opacity: 0.65, marginBottom: 0 }}>+ {formatDollar(monthly)} / month</p>
