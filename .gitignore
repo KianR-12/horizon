@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.edge_cache/
+__pycache__/
+daily_log/
+*.py
+*.pkl
+*.csv
+*.sh
+.claude/worktrees/
+bet_tracker*
