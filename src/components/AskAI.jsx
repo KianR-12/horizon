@@ -99,14 +99,19 @@ export default function AskAI({ answers }) {
 
   const showSuggestions = messages.length === 0
 
+  // BottomNav is ~60px tall; input bar is ~64px tall
+  const NAV_H   = 60
+  const INPUT_H = 64
+
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
+      height: `calc(100vh - ${NAV_H}px)`,
       maxWidth: 390,
       background: '#FFFFFF',
       fontFamily: 'DM Sans, sans-serif',
+      position: 'relative',
     }}>
       <style>{`
         @keyframes bounce {
@@ -144,11 +149,11 @@ export default function AskAI({ answers }) {
         </div>
       </div>
 
-      {/* Message thread */}
+      {/* Message thread — padded so content never hides behind the fixed input bar */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '16px 16px 8px',
+        padding: `16px 16px ${INPUT_H + (showSuggestions ? 100 : 0) + 8}px`,
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -189,14 +194,21 @@ export default function AskAI({ answers }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggested chips */}
+      {/* Suggested chips + input bar — fixed to bottom of this container */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: '#FFFFFF',
+        borderTop: '1px solid #F0F0F0',
+      }}>
       {showSuggestions && (
         <div style={{
-          padding: '0 16px 10px',
+          padding: '10px 16px 0',
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
-          flexShrink: 0,
         }}>
           {SUGGESTED.map((q) => (
             <button
@@ -225,9 +237,7 @@ export default function AskAI({ answers }) {
       <div style={{
         padding: '10px 16px',
         paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
-        borderTop: '1px solid #F0F0F0',
         background: '#FFFFFF',
-        flexShrink: 0,
         display: 'flex',
         gap: 10,
         alignItems: 'flex-end',
@@ -276,6 +286,7 @@ export default function AskAI({ answers }) {
             <path d="M2 8L14 8M14 8L9 3M14 8L9 13" stroke={input.trim() && !loading ? '#FFFFFF' : '#9CA3AF'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
+      </div>
       </div>
     </div>
   )
