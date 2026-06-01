@@ -34,3 +34,6 @@ daily_log/
 *.sh
 .claude/worktrees/
 bet_tracker*
+history.ndjson
+results.json
+tracker.js
