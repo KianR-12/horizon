@@ -6,7 +6,7 @@ const MODEL    = 'llama-3.1-8b-instant'
 
 const SYSTEM_PROMPT = `You are Horizon AI, a friendly personal finance assistant built into the Horizon investing app. You help young investors understand their portfolio, explain financial concepts in plain English, and answer questions about investing. You are speaking to someone who is new to investing, likely between 18-25 years old. Always be encouraging, clear, and never use jargon without explaining it. Never recommend specific stocks to buy or sell — instead explain concepts and help users understand their options. Keep answers to 3 sentences maximum. Be conversational and encouraging.
 
-You have access to a real-time stock price tool. Whenever a user asks about a stock price, percentage change, or how a specific ticker is doing today, always use the get_stock_price tool to fetch the latest data before answering. Never guess or make up prices.`
+You have access to a real-time stock price tool. Only use the get_stock_price tool when the user explicitly asks about a specific stock ticker symbol or asks for the current price of a named stock. For all general investing questions, portfolio questions, or concept explanations, answer directly without using any tools. Never call the tool speculatively or for questions that don't mention a specific ticker.`
 
 // ─── Tool definition ────────────────────────────────────────────────────────
 
@@ -15,13 +15,13 @@ const TOOLS = [
     type: 'function',
     function: {
       name: 'get_stock_price',
-      description: 'Fetch the real-time price, change amount, and percentage change for a stock ticker. Use this whenever the user asks about a stock price or how a specific ticker is performing today.',
+      description: 'Fetch the real-time price and daily change for a specific stock ticker symbol. Only call this when the user explicitly mentions a ticker symbol (like AAPL, TSLA, SPY) or asks for the current price of a specific stock.',
       parameters: {
         type: 'object',
         properties: {
           ticker: {
             type: 'string',
-            description: 'The stock ticker symbol, e.g. "AAPL", "TSLA", "SPY", "NVDA"',
+            description: 'The stock ticker symbol in uppercase, e.g. "AAPL", "TSLA", "SPY", "NVDA"',
           },
         },
         required: ['ticker'],
@@ -38,7 +38,7 @@ async function executeGetStockPrice(ticker) {
     const quotes = await fetchQuotes([symbol])
     const q = quotes[symbol]
     if (!q || q.price === 0) {
-      return { error: `Could not find ticker ${symbol}. Please check the symbol is correct.` }
+      return { error: `I couldn't find data for ${symbol} — please check the ticker symbol is correct.` }
     }
     const direction = q.change >= 0 ? 'up' : 'down'
     return {
@@ -47,10 +47,11 @@ async function executeGetStockPrice(ticker) {
       change:        q.change,
       changePercent: q.changePercent,
       direction,
-      summary: `${symbol} is trading at $${q.price.toFixed(2)}, ${direction} ${Math.abs(q.changePercent).toFixed(2)}% ($${Math.abs(q.change).toFixed(2)}) today.`,
+      summary:       `${symbol} is at $${q.price.toFixed(2)}, ${direction} ${Math.abs(q.changePercent).toFixed(2)}% ($${Math.abs(q.change).toFixed(2)}) today.`,
     }
-  } catch {
-    return { error: `Could not fetch data for ${symbol}. Try checking the symbol is correct.` }
+  } catch (e) {
+    console.error('[groqApi] stock fetch failed:', e)
+    return { error: `I couldn't find that ticker — try checking the symbol is correct.` }
   }
 }
 
@@ -61,9 +62,25 @@ async function dispatchToolCall(name, argsJson) {
       return await executeGetStockPrice(args.ticker)
     }
     return { error: `Unknown tool: ${name}` }
-  } catch {
-    return { error: 'Failed to parse tool arguments.' }
+  } catch (e) {
+    console.error('[groqApi] tool dispatch failed:', e)
+    return { error: 'Tool call failed — please try again.' }
   }
+}
+
+// ─── Response cleaner ────────────────────────────────────────────────────────
+// Strip any raw JSON blobs or tool-call artifacts the model accidentally leaks
+// into its text output (e.g. `{"ticker":"AAPL"}` or <tool_call>…</tool_call>).
+
+function cleanResponse(text) {
+  if (!text) return text
+  return text
+    .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+    .replace(/```json[\s\S]*?```/gi, '')
+    .replace(/\{[^{}]*"ticker"[^{}]*\}/gi, '')
+    .replace(/\{[^{}]*"error"[^{}]*\}/gi, '')
+    .replace(/\{[^{}]*"price"[^{}]*\}/gi, '')
+    .trim()
 }
 
 // ─── System prompt builder ──────────────────────────────────────────────────
@@ -105,7 +122,7 @@ export async function sendMessage(userMessage, portfolioContext, conversationHis
     { role: 'user', content: userMessage },
   ]
 
-  // ── Round 1: initial request with tools available ──────────────────────────
+  // ── Round 1: initial request ───────────────────────────────────────────────
   const res1 = await fetch(ENDPOINT, {
     method: 'POST',
     headers: {
@@ -130,18 +147,22 @@ export async function sendMessage(userMessage, portfolioContext, conversationHis
   const data1   = await res1.json()
   const choice1 = data1.choices[0]
 
-  // ── No tool call — return the direct answer ────────────────────────────────
+  // ── No tool call — return direct answer ────────────────────────────────────
   if (choice1.finish_reason !== 'tool_calls') {
-    return choice1.message.content
+    return cleanResponse(choice1.message.content)
   }
 
-  // ── Round 2: execute each tool call, send results back ────────────────────
-  const assistantMsg = choice1.message  // contains tool_calls array
+  // ── Round 2: execute tool calls, send results back ─────────────────────────
+  const assistantMsg = choice1.message
 
-  // Execute all tool calls (model may request multiple in one turn)
   const toolResultMsgs = await Promise.all(
     assistantMsg.tool_calls.map(async (tc) => {
       const result = await dispatchToolCall(tc.function.name, tc.function.arguments)
+      // If the tool returned an error, log it but still pass a clean message
+      // so the model can give a graceful answer rather than exposing raw JSON.
+      if (result.error) {
+        console.warn('[groqApi] tool error:', result.error)
+      }
       return {
         role:         'tool',
         tool_call_id: tc.id,
@@ -152,8 +173,8 @@ export async function sendMessage(userMessage, portfolioContext, conversationHis
 
   const messages2 = [
     ...messages,
-    assistantMsg,        // assistant message with tool_calls
-    ...toolResultMsgs,   // one tool result per call
+    assistantMsg,
+    ...toolResultMsgs,
   ]
 
   const res2 = await fetch(ENDPOINT, {
@@ -176,5 +197,5 @@ export async function sendMessage(userMessage, portfolioContext, conversationHis
   }
 
   const data2 = await res2.json()
-  return data2.choices[0].message.content
+  return cleanResponse(data2.choices[0].message.content)
 }
