@@ -1,5 +1,18 @@
 const NAV_TABS = [
   {
+    key: 'askai',
+    label: 'Ask AI',
+    icon: (active) => (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M4 10C4 6.69 6.69 4 10 4C13.31 4 16 6.69 16 10C16 13.31 13.31 16 10 16C8.6 16 7.3 15.56 6.24 14.8L4 16L4.8 13.76C4.04 12.7 3.6 11.4 3.6 10H4Z"
+          stroke={active ? '#0057FF' : '#9CA3AF'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="7.5" cy="10" r="0.8" fill={active ? '#0057FF' : '#9CA3AF'}/>
+        <circle cx="10" cy="10" r="0.8" fill={active ? '#0057FF' : '#9CA3AF'}/>
+        <circle cx="12.5" cy="10" r="0.8" fill={active ? '#0057FF' : '#9CA3AF'}/>
+      </svg>
+    ),
+  },
+  {
     key: 'portfolio',
     label: 'Portfolio',
     icon: (active) => (

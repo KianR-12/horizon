@@ -6,6 +6,7 @@ import Portfolio from './components/Portfolio.jsx'
 import Signals from './components/Signals.jsx'
 import Alerts from './components/Alerts.jsx'
 import Performance from './components/Performance.jsx'
+import AskAI from './components/AskAI.jsx'
 import BottomNav from './components/BottomNav.jsx'
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
           {activeTab === 'signals'     && <Signals />}
           {activeTab === 'alerts'      && <Alerts />}
           {activeTab === 'performance' && <Performance answers={answers} />}
+          {activeTab === 'askai'       && <AskAI answers={answers} />}
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         </>
       )}

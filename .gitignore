@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.local
+.env.*.local
 .edge_cache/
 __pycache__/
 daily_log/

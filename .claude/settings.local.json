@@ -4,19 +4,17 @@
       "Bash(npm install *)",
       "Bash(npm run *)",
       "Bash(curl -s http://localhost:5173)",
-      "Bash(python3 -c \"import py_compile; py_compile.compile\\('edge_finder.py', doraise=True\\) and print\\('OK'\\)\")",
-      "Bash(python3 edge_finder.py --once --help)",
-      "Bash(python3 edge_finder.py --once)",
-      "Bash(python3 -c \"import py_compile; py_compile.compile\\('edge_finder.py', doraise=True\\)\")",
-      "Bash(KALSHI_API_KEY=4ada54f6-2c5e-4f12-94c3-dc5a100e43eb python3 *)",
-      "Bash(python3 -c ' *)",
-      "Bash(python *)",
       "Bash(python3 *)",
-      "Bash(chmod +x *)",
-      "Bash(bash run.sh)",
-      "Bash(export KALSHI_API_KEY=4ada54f6-2c5e-4f12-94c3-dc5a100e43eb)",
-      "Bash(curl -sI \"https://api-web.nhle.com/v1/standings/now\")",
-      "Bash(curl -s \"https://api-web.nhle.com/v1/standings/now\")"
+      "Bash(node *)",
+      "Bash(crontab -l)",
+      "Bash(echo \"---EXIT:$?---\")",
+      "Bash(crontab -)",
+      "Bash(python nba_edge_finder.py --game OKC SAS 3 3 2026-05-30)",
+      "Bash(curl -s --max-time 5 \"https://www.nba.com/injuries\" -A \"Mozilla/5.0\" -H \"Referer: https://www.nba.com/\")",
+      "Bash(curl -s --max-time 8 \"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries\")",
+      "Bash(curl -s --max-time 8 \"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/25/statistics?season=20252026&seasontype=3\")",
+      "Bash(curl -s --max-time 8 \"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/25/schedule?season=2026&seasontype=3\")",
+      "Bash(pip3 install *)"
     ]
   }
 }
