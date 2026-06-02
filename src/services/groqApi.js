@@ -2,7 +2,7 @@ import { fetchQuotes } from './stockApi.js'
 
 const API_KEY  = import.meta.env.VITE_GROQ_API_KEY
 const ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
-const MODEL    = 'llama-3.1-8b-instant'
+const MODEL    = 'llama-3.3-70b-versatile'
 
 const SYSTEM_PROMPT = `You are Horizon AI, a friendly personal finance assistant built into the Horizon investing app. You help young investors understand their portfolio, explain financial concepts in plain English, and answer questions about investing. You are speaking to someone who is new to investing, likely between 18-25 years old. Always be encouraging, clear, and never use jargon without explaining it. Never recommend specific stocks to buy or sell — instead explain concepts and help users understand their options. Keep answers to 3 sentences maximum. Be conversational and encouraging.
 
@@ -69,8 +69,6 @@ async function dispatchToolCall(name, argsJson) {
 }
 
 // ─── Response cleaner ────────────────────────────────────────────────────────
-// Strip any raw JSON blobs or tool-call artifacts the model accidentally leaks
-// into its text output (e.g. `{"ticker":"AAPL"}` or <tool_call>…</tool_call>).
 
 function cleanResponse(text) {
   if (!text) return text
@@ -81,6 +79,65 @@ function cleanResponse(text) {
     .replace(/\{[^{}]*"error"[^{}]*\}/gi, '')
     .replace(/\{[^{}]*"price"[^{}]*\}/gi, '')
     .trim()
+}
+
+// ─── Ticker extractor (for fallback path) ────────────────────────────────────
+// Pulls uppercase 1-5 letter sequences that look like ticker symbols.
+
+function extractTickers(text) {
+  const matches = text.match(/\b[A-Z]{1,5}\b/g) || []
+  // Filter out common English words that are all-caps but not tickers
+  const noise = new Set(['I', 'A', 'IT', 'AT', 'BE', 'BY', 'DO', 'GO', 'IF',
+    'IN', 'IS', 'MY', 'NO', 'OF', 'ON', 'OR', 'TO', 'UP', 'US', 'WE',
+    'AND', 'ARE', 'BUT', 'FOR', 'HOW', 'ITS', 'NOT', 'NOW', 'THE', 'WAS',
+    'ETF', 'IPO', 'IRA', 'ROI', 'GDP', 'API', 'FAQ', 'AI', 'OK', 'PM', 'AM'])
+  return [...new Set(matches.filter(m => !noise.has(m)))]
+}
+
+// ─── Fallback: inject price context and ask without tools ────────────────────
+
+async function fallbackWithInjectedPrice(userMessage, messages) {
+  const tickers = extractTickers(userMessage)
+  let priceContext = ''
+
+  if (tickers.length > 0) {
+    const results = await Promise.all(tickers.map(t => executeGetStockPrice(t)))
+    const lines = results
+      .filter(r => !r.error)
+      .map(r => `Current price of ${r.ticker}: $${r.price.toFixed(2)}, ${r.direction} ${Math.abs(r.changePercent).toFixed(2)}% today`)
+    if (lines.length > 0) {
+      priceContext = `\n\n[Real-time data for context: ${lines.join(' | ')}]`
+    }
+  }
+
+  // Inject price data into the last user message as extra context
+  const messagesWithContext = [
+    ...messages.slice(0, -1),
+    { role: 'user', content: userMessage + priceContext },
+  ]
+
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model:       MODEL,
+      messages:    messagesWithContext,
+      temperature: 0.7,
+      max_tokens:  300,
+      // No tools — plain text response
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Groq API error ${res.status}: ${err}`)
+  }
+
+  const data = await res.json()
+  return cleanResponse(data.choices[0].message.content)
 }
 
 // ─── System prompt builder ──────────────────────────────────────────────────
@@ -122,80 +179,93 @@ export async function sendMessage(userMessage, portfolioContext, conversationHis
     { role: 'user', content: userMessage },
   ]
 
-  // ── Round 1: initial request ───────────────────────────────────────────────
-  const res1 = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model:       MODEL,
-      messages,
-      tools:       TOOLS,
-      tool_choice: 'auto',
-      temperature: 0.7,
-      max_tokens:  300,
-    }),
-  })
-
-  if (!res1.ok) {
-    const err = await res1.text()
-    throw new Error(`Groq API error ${res1.status}: ${err}`)
-  }
-
-  const data1   = await res1.json()
-  const choice1 = data1.choices[0]
-
-  // ── No tool call — return direct answer ────────────────────────────────────
-  if (choice1.finish_reason !== 'tool_calls') {
-    return cleanResponse(choice1.message.content)
-  }
-
-  // ── Round 2: execute tool calls, send results back ─────────────────────────
-  const assistantMsg = choice1.message
-
-  const toolResultMsgs = await Promise.all(
-    assistantMsg.tool_calls.map(async (tc) => {
-      const result = await dispatchToolCall(tc.function.name, tc.function.arguments)
-      // If the tool returned an error, log it but still pass a clean message
-      // so the model can give a graceful answer rather than exposing raw JSON.
-      if (result.error) {
-        console.warn('[groqApi] tool error:', result.error)
-      }
-      return {
-        role:         'tool',
-        tool_call_id: tc.id,
-        content:      JSON.stringify(result),
-      }
+  try {
+    // ── Round 1: request with tool calling ──────────────────────────────────
+    const res1 = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model:       MODEL,
+        messages,
+        tools:       TOOLS,
+        tool_choice: 'auto',
+        temperature: 0.7,
+        max_tokens:  300,
+      }),
     })
-  )
 
-  const messages2 = [
-    ...messages,
-    assistantMsg,
-    ...toolResultMsgs,
-  ]
+    if (!res1.ok) {
+      const errText = await res1.text()
+      // tool_use_failed or any tool-related error → fall through to fallback
+      if (errText.includes('tool_use_failed') || errText.includes('tool') || res1.status === 400) {
+        console.warn('[groqApi] Tool calling failed, using fallback:', errText)
+        return await fallbackWithInjectedPrice(userMessage, messages)
+      }
+      throw new Error(`Groq API error ${res1.status}: ${errText}`)
+    }
 
-  const res2 = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model:       MODEL,
-      messages:    messages2,
-      temperature: 0.7,
-      max_tokens:  300,
-    }),
-  })
+    const data1   = await res1.json()
+    const choice1 = data1.choices[0]
 
-  if (!res2.ok) {
-    const err = await res2.text()
-    throw new Error(`Groq API error ${res2.status}: ${err}`)
+    // ── No tool call — return direct answer ──────────────────────────────────
+    if (choice1.finish_reason !== 'tool_calls') {
+      return cleanResponse(choice1.message.content)
+    }
+
+    // ── Round 2: execute tool calls, send results back ───────────────────────
+    const assistantMsg = choice1.message
+
+    const toolResultMsgs = await Promise.all(
+      assistantMsg.tool_calls.map(async (tc) => {
+        const result = await dispatchToolCall(tc.function.name, tc.function.arguments)
+        if (result.error) console.warn('[groqApi] tool error:', result.error)
+        return {
+          role:         'tool',
+          tool_call_id: tc.id,
+          content:      JSON.stringify(result),
+        }
+      })
+    )
+
+    const messages2 = [...messages, assistantMsg, ...toolResultMsgs]
+
+    const res2 = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model:       MODEL,
+        messages:    messages2,
+        temperature: 0.7,
+        max_tokens:  300,
+      }),
+    })
+
+    if (!res2.ok) {
+      const errText = await res2.text()
+      console.warn('[groqApi] Round 2 failed, using fallback:', errText)
+      return await fallbackWithInjectedPrice(userMessage, messages)
+    }
+
+    const data2 = await res2.json()
+    return cleanResponse(data2.choices[0].message.content)
+
+  } catch (e) {
+    // Any unexpected failure in the tool-calling path → try the plain fallback
+    // before propagating the error to the UI
+    if (e.message?.includes('tool')) {
+      console.warn('[groqApi] Tool path threw, using fallback:', e)
+      try {
+        return await fallbackWithInjectedPrice(userMessage, messages)
+      } catch (fallbackErr) {
+        throw fallbackErr   // fallback also failed — surface to UI
+      }
+    }
+    throw e
   }
-
-  const data2 = await res2.json()
-  return cleanResponse(data2.choices[0].message.content)
 }
